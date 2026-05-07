@@ -323,8 +323,10 @@ prepare_boot_env() {
     # Minimal mountpoints needed by /init.sh's unionfs cascade. /sysroot
     # is the merge target (uzip lower + tmpfs upper); /upper is the
     # writable layer; /dev gets the cd9660-context devfs before we mount
-    # /sysroot/dev separately.
-    mkdir -p "${CD_ROOT}/sysroot" "${CD_ROOT}/upper" "${CD_ROOT}/dev"
+    # /sysroot/dev separately. /etc exists for mkisoimages.sh, which
+    # writes a transient /etc/fstab during ISO mastering and removes it
+    # immediately — the dir needs to exist or the redirect fails.
+    mkdir -p "${CD_ROOT}/sysroot" "${CD_ROOT}/upper" "${CD_ROOT}/dev" "${CD_ROOT}/etc"
 
     cp "${RELEASE_DIR}"/COPYRIGHT "${CD_ROOT}"/
 
