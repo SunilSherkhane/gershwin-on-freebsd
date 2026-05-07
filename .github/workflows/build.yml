@@ -10,8 +10,8 @@ permissions:
   contents: write
 
 jobs:
-  build-freebsd-15-amd64:
-    name: FreeBSD x86_64
+  build:
+    name: build (FreeBSD 15.0 amd64)
     runs-on: ubuntu-latest
     timeout-minutes: 240
     steps:
@@ -50,8 +50,55 @@ jobs:
           path: artifacts/FreeBSD/15/amd64
           if-no-files-found: error
 
+  test:
+    name: boot-test (FreeBSD 15.0 amd64)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: gershwin-on-freebsd-15-amd64
+          path: artifacts/FreeBSD/15/amd64
+
+      - name: install qemu + expect + ovmf
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 expect ovmf
+
+      - name: boot test
+        run: |
+          ISO=$(ls artifacts/FreeBSD/15/amd64/*.iso 2>/dev/null | head -1)
+          if [ -z "$ISO" ]; then
+            echo "no iso found in artifacts/FreeBSD/15/amd64/"
+            ls -laR artifacts/
+            exit 1
+          fi
+          chmod +x tests/boot-test.sh
+          ./tests/boot-test.sh "$ISO"
+
+      - name: upload boot log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-log
+          path: tests/boot.log
+          if-no-files-found: ignore
+
+  release:
+    name: publish continuous release
+    needs: [build, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: gershwin-on-freebsd-15-amd64
+          path: artifacts/FreeBSD/15/amd64
+
       - name: Publish to continuous release
-        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
