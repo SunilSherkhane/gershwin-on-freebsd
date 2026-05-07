@@ -68,19 +68,21 @@ eval spawn qemu-system-x86_64 \
     -display none -serial stdio \
     -no-reboot
 
-# Wait for any of several markers that prove userland is up. Gershwin
-# boots toward a graphical login (slim) by default; on serial-only QEMU
-# the text console getty is what we'll catch. "login:" is the strongest
-# single signal; "Starting local daemons" / "Welcome to" are accepted
-# as fallbacks if console muting hides the getty banner.
+# Wait for a marker that proves the multi-user rc has started. Strict
+# on purpose: we DON'T accept "Welcome to FreeBSD" because the loader's
+# beastie banner matches that string before the kernel even boots, and
+# that gave us a false-positive 1-minute pass on commit 7caefbf. The
+# accepted markers all fire from inside multi-user (well past kernel +
+# /init.sh + chroot).
 expect {
     timeout {
-        puts "\nFAIL: no login/multi-user marker within 10 minutes"
+        puts "\nFAIL: no multi-user marker within 10 minutes"
         exit 1
     }
-    "login:"                  { puts "\nOK: getty login prompt reached" }
-    "Starting local daemons"  { puts "\nOK: rc reached local-daemons phase" }
-    -re {Welcome to (Gershwin|FreeBSD)} { puts "\nOK: welcome banner printed" }
+    "login:"                       { puts "\nOK: getty login prompt reached" }
+    "Starting local daemons"       { puts "\nOK: rc reached local-daemons phase" }
+    "Setting hostname"             { puts "\nOK: rc set hostname (multi-user)" }
+    "Mounting local filesystems"   { puts "\nOK: rc mounted local fs (multi-user)" }
 }
 
 close
