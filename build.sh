@@ -278,7 +278,7 @@ EFS
 
 build_gershwin_components() {
     log "Building Gershwin components from source..."
-    git clone --depth 1 https://github.com/gershwin-desktop/gershwin-developer "${RELEASE_DIR}/Developer"
+    git clone --branch feat/libs-corebase --depth 1 https://github.com/gershwin-desktop/gershwin-developer "${RELEASE_DIR}/Developer"
 
     cp /etc/resolv.conf "${RELEASE_DIR}/etc/resolv.conf"
 
